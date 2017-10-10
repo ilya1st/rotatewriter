@@ -1,6 +1,7 @@
 # Rotation log writer
 
-This is log writer to support rotation
+This is log writer to support rotation.
+
 Note: logs directory in library intended for testing purposes
 
 ## Usage
