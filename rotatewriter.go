@@ -189,7 +189,8 @@ func (rw *RotateWriter) Rotate(ready func()) error {
 				return err
 			}
 		}
-		err = os.Rename(rw.Filename, rw.Filename+".1")
+		// may be we need errors here?
+		os.Rename(rw.Filename, rw.Filename+".1")
 	}
 	renewFile := true
 	if rw.NumFiles == 0 {
