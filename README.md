@@ -1,15 +1,16 @@
 # Rotation log writer
 
+[![Build Status](https://travis-ci.org/ilya1st/rotatewriter.svg?branch=master)](https://travis-ci.org/ilya1st/rotatewriter)[![Go Report Card](https://goreportcard.com/badge/github.com/ilya1st/rotatewriter)](https://goreportcard.com/report/github.com/ilya1st/rotatewriter)
+
 This is log writer to support rotation.
 
 Note: logs directory in library intended for testing purposes
 
 ## Usage
 
-
 ### Example
 
-You can use RotateWriter as standart golang log writer or use as zerolog writer.
+You can use RotateWriter as standard golang log writer or use as zerolog writer.
 
 Example for zerolog case:
 
@@ -17,14 +18,14 @@ Example for zerolog case:
 package main
 
 import (
-	"fmt"
-	"os"
-	"os/signal"
-	"syscall"
-	"time"
+    "fmt"
+    "os"
+    "os/signal"
+    "syscall"
+    "time"
 
-	"github.com/ilya1st/rotatewriter"
-	"github.com/rs/zerolog"
+    "github.com/ilya1st/rotatewriter"
+    "github.com/rs/zerolog"
 )
 
 func main() {
@@ -56,10 +57,11 @@ func main() {
 
 ### rotatewriter.NewRotateWriter() arguments
 
-First argument is full log filename  includein directory.
+First argument is full log filename.
 
 Second argument - number of files to store.
-If it's 0 - writer juse reopen file. This is for cases you use logrotate instrument around your app
+
+If it's 0 - writer just reopen file. This is for cases you use logrotate instrument around your app
 
 ### rotatewriter.Rotate()
 
@@ -72,7 +74,7 @@ You can determine is rotation operation in progress or not if you need
 
 ## Why
 
-This package was inspired by lumberjack - but there is an issue with bloking while log rotation and it's overloaded with feachures as size counting, gzip but I need just correctly handle reopen.
+This package was inspired by lumberjack - but there is an issue with blocking while log rotation and it's overloaded with features as size counting, gzip but I need just correctly handle reopen.
 
 ## Install
 

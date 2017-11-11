@@ -1,4 +1,4 @@
-// Package rotatewiter contains additional tool for logging packages - RotateWriter Writer which implemet normal fast smooth rotation
+// Package rotatewriter contains additional tool for logging packages - RotateWriter Writer which implement normal fast smooth rotation
 package rotatewriter
 
 import (
@@ -27,11 +27,11 @@ type RotateWriter struct {
 }
 
 // NewRotateWriter creates new instance make some checks there
-// fname: filename, must contain existing directory  file
+// fileName: filename, must contain existing directory  file
 // numfiles: 0 if no rotation at all - just reopen file on rotation. e.g. you would like use logrotate
 // numfiles: >0 if rotation enabled
-func NewRotateWriter(fname string, numfiles int) (rw *RotateWriter, err error) {
-	rw = &RotateWriter{Filename: fname, NumFiles: numfiles, file: nil}
+func NewRotateWriter(fileName string, numfiles int) (rw *RotateWriter, err error) {
+	rw = &RotateWriter{Filename: fileName, NumFiles: numfiles, file: nil}
 	err = rw.initDirPath()
 	if nil != err {
 		return nil, err
@@ -148,7 +148,7 @@ func (rw *RotateWriter) Rotate(ready func()) error {
 	if err != nil {
 		return err
 	}
-	_, fname := filepath.Split(rw.Filename)
+	_, fileName := filepath.Split(rw.Filename)
 	sl := make([]int, 0, rw.NumFiles)
 	if rw.NumFiles > 0 {
 	filesfor1:
@@ -157,7 +157,7 @@ func (rw *RotateWriter) Rotate(ready func()) error {
 				return fmt.Errorf("Rotation problem: File %s is directory", fi.Name())
 			}
 			ext := filepath.Ext(fi.Name())
-			if (fname + ext) == fi.Name() {
+			if (fileName + ext) == fi.Name() {
 				if ext == "" {
 					continue filesfor1
 				}
@@ -182,26 +182,23 @@ func (rw *RotateWriter) Rotate(ready func()) error {
 		})
 		for _, num := range sl {
 			err = os.Rename(
-				path.Join(rw.dirpath, fname+"."+strconv.FormatInt(int64(num), 10)),
-				path.Join(rw.dirpath, fname+"."+strconv.FormatInt(int64(num+1), 10)),
+				path.Join(rw.dirpath, fileName+"."+strconv.FormatInt(int64(num), 10)),
+				path.Join(rw.dirpath, fileName+"."+strconv.FormatInt(int64(num+1), 10)),
 			)
 			if err != nil {
 				return err
 			}
 		}
-		// FINAL OF PROCESS: swich file descriptor :-)
-		// create firstfile there
 		err = os.Rename(rw.Filename, rw.Filename+".1")
-	} // end of if rw.NumFiles > 0
-	// now we make new lock
-	rnfile := true
+	}
+	renewFile := true
 	if rw.NumFiles == 0 {
-		// here may be one fuckup: file was not renamed
+		// here may be one fail: file was not renamed
 		_, err := os.Stat(rw.Filename)
-		rnfile = os.IsNotExist(err)
+		renewFile = os.IsNotExist(err)
 	}
 	// right way first open file - not to make program wait while Write()
-	if rnfile { // if file waas not deleted we really do not need reopen
+	if renewFile { // if file was not deleted we really do not need reopen
 		oldfile := rw.file
 		newfile, err := rw.openWriteFileInt()
 		if err != nil {
@@ -213,9 +210,7 @@ func (rw *RotateWriter) Rotate(ready func()) error {
 			// now file is opened. Just make save switch of them
 			rw.file = newfile
 		}()
-		// aaaaand  when program started normal logging on new file close old the file
 		oldfile.Close()
-		// TODO: for case of numfiles > 0 add gzip|etc option here and do actions on test.log.1
 	}
 	return nil
 }

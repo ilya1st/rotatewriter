@@ -37,7 +37,7 @@ func compareRws(rw1, rw2 *RotateWriter) bool {
 
 func TestNewRotateWriter(t *testing.T) {
 	type args struct {
-		fname    string
+		fileName string
 		numfiles int
 	}
 	tests := []struct {
@@ -49,8 +49,8 @@ func TestNewRotateWriter(t *testing.T) {
 		cleanUp func()
 	}{
 		{
-			name:    "Empty filaname case",
-			args:    args{fname: "", numfiles: 0},
+			name:    "Empty filename case",
+			args:    args{fileName: "", numfiles: 0},
 			wantRw:  nil,
 			wantErr: true,
 		},
@@ -62,13 +62,13 @@ func TestNewRotateWriter(t *testing.T) {
 		},
 		{
 			name:    "Log file path exists all ok, but negative numfiles",
-			args:    args{fname: "logs/test.log", numfiles: -1},
+			args:    args{fileName: "logs/test.log", numfiles: -1},
 			wantRw:  nil,
 			wantErr: true,
 		},
 		{
 			name: "Log file path exists, zero numfiles",
-			args: args{fname: "logs/test.log", numfiles: 0},
+			args: args{fileName: "logs/test.log", numfiles: 0},
 			wantRw: &RotateWriter{
 				Filename: "logs/test.log",
 				NumFiles: 0,
@@ -80,7 +80,7 @@ func TestNewRotateWriter(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotRw, err := NewRotateWriter(tt.args.fname, tt.args.numfiles)
+			gotRw, err := NewRotateWriter(tt.args.fileName, tt.args.numfiles)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("NewRotateWriter() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -101,7 +101,7 @@ func TestRotateWriter_initDirPath(t *testing.T) {
 		NumFiles int
 		dirpath  string
 	}
-	defStartUpfunc := func(fields fields) *RotateWriter {
+	defStartUpFunc := func(fields fields) *RotateWriter {
 		return &RotateWriter{
 			Filename: fields.Filename,
 			NumFiles: fields.NumFiles,
@@ -137,7 +137,7 @@ func TestRotateWriter_initDirPath(t *testing.T) {
 			var rw *RotateWriter
 			rw = nil
 			if tt.startUpFunc == nil {
-				rw = defStartUpfunc(tt.fields)
+				rw = defStartUpFunc(tt.fields)
 			} else {
 				rw = tt.startUpFunc(tt.fields)
 			}
@@ -160,7 +160,7 @@ func TestRotateWriter_openWriteFile(t *testing.T) {
 		NumFiles int
 		dirpath  string
 	}
-	defStartUpfunc := func(fields fields) *RotateWriter {
+	defStartUpFunc := func(fields fields) *RotateWriter {
 		return &RotateWriter{
 			Filename: fields.Filename,
 			NumFiles: fields.NumFiles,
@@ -201,7 +201,7 @@ func TestRotateWriter_openWriteFile(t *testing.T) {
 			var rw *RotateWriter
 			rw = nil
 			if tt.startUpFunc == nil {
-				rw = defStartUpfunc(tt.fields)
+				rw = defStartUpFunc(tt.fields)
 			} else {
 				rw = tt.startUpFunc(tt.fields)
 			}
@@ -230,7 +230,7 @@ func TestRotateWriter_openWriteFileInt(t *testing.T) {
 		NumFiles int
 		dirpath  string
 	}
-	defStartUpfunc := func(fields fields) *RotateWriter {
+	defStartUpFunc := func(fields fields) *RotateWriter {
 		return &RotateWriter{
 			Filename: fields.Filename,
 			NumFiles: fields.NumFiles,
@@ -274,7 +274,7 @@ func TestRotateWriter_openWriteFileInt(t *testing.T) {
 			var rw *RotateWriter
 			rw = nil
 			if tt.startUpFunc == nil {
-				rw = defStartUpfunc(tt.fields)
+				rw = defStartUpFunc(tt.fields)
 			} else {
 				rw = tt.startUpFunc(tt.fields)
 			}
@@ -307,7 +307,7 @@ func TestRotateWriter_CloseWriteFile(t *testing.T) {
 		NumFiles int
 		dirpath  string
 	}
-	defStartUpfunc := func(fields fields) *RotateWriter {
+	defStartUpFunc := func(fields fields) *RotateWriter {
 		return &RotateWriter{
 			Filename: fields.Filename,
 			NumFiles: fields.NumFiles,
@@ -330,7 +330,7 @@ func TestRotateWriter_CloseWriteFile(t *testing.T) {
 			cleanUp: cleanupLogs,
 		},
 		{
-			name: "normal writer init(teoretically)",
+			name: "normal writer init(theoretically)",
 			fields: fields{
 				Filename: "./logs/test.log",
 			},
@@ -351,12 +351,12 @@ func TestRotateWriter_CloseWriteFile(t *testing.T) {
 			var rw *RotateWriter
 			rw = nil
 			if tt.startUpFunc == nil {
-				rw = defStartUpfunc(tt.fields)
+				rw = defStartUpFunc(tt.fields)
 			} else {
 				rw = tt.startUpFunc(tt.fields)
 			}
 			if rw == nil {
-				t.Errorf("RotateWriter.CloseWriteFile() error during test startup occured")
+				t.Errorf("RotateWriter.CloseWriteFile() error during test startup occurred")
 			}
 			err := rw.CloseWriteFile()
 			if (err != nil) != tt.wantErr {
@@ -381,7 +381,7 @@ func TestRotateWriter_Write(t *testing.T) {
 	type args struct {
 		p []byte
 	}
-	defStartUpfunc := func(fields fields) *RotateWriter {
+	defStartUpFunc := func(fields fields) *RotateWriter {
 		return &RotateWriter{
 			Filename: fields.Filename,
 			NumFiles: fields.NumFiles,
@@ -407,7 +407,7 @@ func TestRotateWriter_Write(t *testing.T) {
 			args:        args{p: []byte("test string")},
 			wantN:       0,
 			wantErr:     true,
-			startUpFunc: defStartUpfunc,
+			startUpFunc: defStartUpFunc,
 			cleanUp:     cleanupFunc,
 		},
 		{
@@ -458,12 +458,12 @@ func TestRotateWriter_Write(t *testing.T) {
 			var rw *RotateWriter
 			rw = nil
 			if tt.startUpFunc == nil {
-				rw = defStartUpfunc(tt.fields)
+				rw = defStartUpFunc(tt.fields)
 			} else {
 				rw = tt.startUpFunc(tt.fields)
 			}
 			if rw == nil {
-				t.Errorf("RotateWriter.Write() error during test startup occured")
+				t.Errorf("RotateWriter.Write() error during test startup occurred")
 			}
 			gotN, err := rw.Write(tt.args.p)
 			if (err != nil) != tt.wantErr {
@@ -489,7 +489,7 @@ func TestRotateWriter_RotationInProgress(t *testing.T) {
 		NumFiles int
 		dirpath  string
 	}
-	defStartUpfunc := func(fields fields) *RotateWriter {
+	defStartUpFunc := func(fields fields) *RotateWriter {
 		return &RotateWriter{
 			Filename: fields.Filename,
 			NumFiles: fields.NumFiles,
@@ -528,12 +528,12 @@ func TestRotateWriter_RotationInProgress(t *testing.T) {
 			var rw *RotateWriter
 			rw = nil
 			if tt.startUpFunc == nil {
-				rw = defStartUpfunc(tt.fields)
+				rw = defStartUpFunc(tt.fields)
 			} else {
 				rw = tt.startUpFunc(tt.fields)
 			}
 			if rw == nil {
-				t.Errorf("RotateWriter.RotationInProgress() error during test startup occured")
+				t.Errorf("RotateWriter.RotationInProgress() error during test startup occurred")
 			}
 			if got := rw.RotationInProgress(); got != tt.want {
 				t.Errorf("RotateWriter.RotationInProgress() = %v, want %v", got, tt.want)
@@ -554,7 +554,7 @@ func TestRotateWriter_Rotate(t *testing.T) {
 		NumFiles int
 		dirpath  string
 	}
-	defStartUpfunc := func(fields fields) *RotateWriter {
+	defStartUpFunc := func(fields fields) *RotateWriter {
 		return &RotateWriter{
 			Filename: fields.Filename,
 			NumFiles: fields.NumFiles,
@@ -651,12 +651,12 @@ func TestRotateWriter_Rotate(t *testing.T) {
 			var rw *RotateWriter
 			rw = nil
 			if tt.startUpFunc == nil {
-				rw = defStartUpfunc(tt.fields)
+				rw = defStartUpFunc(tt.fields)
 			} else {
 				rw = tt.startUpFunc(tt.fields)
 			}
 			if rw == nil {
-				t.Errorf("RotateWriter.RotationInProgress() error during test startup occured")
+				t.Errorf("RotateWriter.RotationInProgress() error during test startup occurred")
 			}
 			if err := rw.Rotate(tt.args.ready); (err != nil) != tt.wantErr {
 				t.Errorf("RotateWriter.Rotate() error = %v, wantErr %v", err, tt.wantErr)
