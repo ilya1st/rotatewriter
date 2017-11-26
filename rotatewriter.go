@@ -2,6 +2,7 @@
 package rotatewriter
 
 import (
+	"bufio"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -11,19 +12,26 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 )
 
 // this file contains realizarion of Writer for logs which contains rotate capability
 
 // RotateWriter is Writer with Rotate function to make correctly rotation of
 type RotateWriter struct {
-	Filename    string
-	NumFiles    int
-	dirpath     string
-	file        *os.File
-	writeMutex  sync.Mutex
-	rotateMutex sync.Mutex
-	statusMap   sync.Map
+	Filename      string
+	NumFiles      int
+	dirpath       string
+	file          *os.File
+	writeMutex    sync.Mutex
+	rotateMutex   sync.Mutex
+	statusMap     sync.Map
+	IsBuffered    bool
+	FlushTimeout  time.Duration
+	bufferedOut   *bufio.Writer
+	BufferSize    int
+	lastWriteTime time.Time
+	ticker        *time.Ticker
 }
 
 // NewRotateWriter creates new instance make some checks there
@@ -43,6 +51,50 @@ func NewRotateWriter(fileName string, numfiles int) (rw *RotateWriter, err error
 	if 0 > numfiles {
 		return nil, fmt.Errorf("numfiles must be 0 or more")
 	}
+	return rw, nil
+}
+
+// NewRotateBufferedWriter creates new buffered instance make some checks there
+// fileName: filename, must contain existing directory  file
+// numfiles: 0 if no rotation at all - just reopen file on rotation. e.g. you would like use logrotate
+// numfiles: >0 if rotation enabled
+// flush timeout - flush after timeout when there are no writes
+// buffer size to work with
+func NewRotateBufferedWriter(fileName string, numfiles int, flushTimeout time.Duration, bufferSize int) (rw *RotateWriter, err error) {
+	rw = &RotateWriter{Filename: fileName, NumFiles: numfiles, file: nil, IsBuffered: true, FlushTimeout: flushTimeout, BufferSize: bufferSize}
+	if flushTimeout == 0 {
+		return nil, fmt.Errorf("flushTimeout must be not nil")
+	}
+	if bufferSize == 0 {
+		return nil, fmt.Errorf("bufferSize must be non zero")
+	}
+	err = rw.initDirPath()
+	if nil != err {
+		return nil, err
+	}
+	err = rw.openWriteFile()
+	if nil != err {
+		return nil, err
+	}
+	if 0 > numfiles {
+		return nil, fmt.Errorf("numfiles must be 0 or more")
+	}
+	rw.lastWriteTime = time.Now()
+	rw.ticker = time.NewTicker(rw.FlushTimeout)
+	// start flush ticker
+	go func() {
+		for t := range rw.ticker.C {
+			func() {
+				rw.writeMutex.Lock()
+				defer rw.writeMutex.Unlock()
+				duration := t.Sub(rw.lastWriteTime)
+				if duration > rw.FlushTimeout && rw.bufferedOut != nil {
+					// flush that shit
+					rw.bufferedOut.Flush()
+				}
+			}()
+		}
+	}()
 	return rw, nil
 }
 
@@ -70,6 +122,10 @@ func (rw *RotateWriter) openWriteFile() error {
 		return err
 	}
 	rw.file = file
+	if rw.IsBuffered {
+		rw.bufferedOut = bufio.NewWriterSize(rw.file, rw.BufferSize)
+		rw.lastWriteTime = time.Now()
+	}
 	return nil
 }
 
@@ -106,6 +162,10 @@ func (rw *RotateWriter) CloseWriteFile() error {
 	if rw.file == nil {
 		return nil
 	}
+	if rw.IsBuffered {
+		rw.bufferedOut.Flush()
+		rw.bufferedOut = nil
+	}
 	err := rw.file.Close()
 	rw.file = nil
 	return err
@@ -118,7 +178,12 @@ func (rw *RotateWriter) Write(p []byte) (n int, err error) {
 	if rw.file == nil {
 		return 0, fmt.Errorf("Error: no file was opened for work with")
 	}
-	n, err = rw.file.Write(p)
+	if rw.IsBuffered {
+		n, err = rw.bufferedOut.Write(p)
+		rw.lastWriteTime = time.Now()
+	} else {
+		n, err = rw.file.Write(p)
+	}
 	return n, err
 }
 
@@ -201,7 +266,13 @@ func (rw *RotateWriter) Rotate(ready func()) error {
 	// right way first open file - not to make program wait while Write()
 	if renewFile { // if file was not deleted we really do not need reopen
 		oldfile := rw.file
+		oldBuff := rw.bufferedOut
 		newfile, err := rw.openWriteFileInt()
+		var newBuff *bufio.Writer
+		newBuff = nil
+		if rw.IsBuffered {
+			newBuff = bufio.NewWriterSize(newfile, rw.BufferSize)
+		}
 		if err != nil {
 			return err
 		}
@@ -210,7 +281,13 @@ func (rw *RotateWriter) Rotate(ready func()) error {
 			defer rw.writeMutex.Unlock()
 			// now file is opened. Just make save switch of them
 			rw.file = newfile
+			if rw.IsBuffered {
+				rw.bufferedOut = newBuff
+			}
 		}()
+		if rw.IsBuffered {
+			oldBuff.Flush()
+		}
 		oldfile.Close()
 	}
 	return nil

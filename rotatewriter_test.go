@@ -6,6 +6,7 @@ import (
 	"path"
 	"reflect"
 	"testing"
+	"time"
 )
 
 func cleanupLogs() {
@@ -81,6 +82,82 @@ func TestNewRotateWriter(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			gotRw, err := NewRotateWriter(tt.args.fileName, tt.args.numfiles)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("NewRotateWriter() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !compareRws(gotRw, tt.wantRw) {
+				t.Errorf("NewRotateWriter() = %v, want %v", gotRw, tt.wantRw)
+			}
+			if nil != tt.cleanUp {
+				tt.cleanUp()
+			}
+		})
+	}
+}
+
+func TestNewRotateBufferedWriter(t *testing.T) {
+	type args struct {
+		fileName     string
+		numfiles     int
+		flushTimeout time.Duration
+		bufferSize   int
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantRw  *RotateWriter
+		wantErr bool
+		prepare func()
+		cleanUp func()
+	}{
+		{
+			name:    "Empty filename case",
+			args:    args{fileName: "", numfiles: 0},
+			wantRw:  nil,
+			wantErr: true,
+		},
+		{
+			name:    "Not existing path to log file",
+			args:    args{"/notexisting/log/path/of/file", 0, 500 * time.Microsecond, 1024},
+			wantRw:  nil,
+			wantErr: true,
+		},
+		{
+			name:    "Log file path exists all ok, but negative numfiles",
+			args:    args{"logs/test.log", -1, 500 * time.Microsecond, 1024},
+			wantRw:  nil,
+			wantErr: true,
+		},
+		{
+			name: "Log file path exists, zero numfiles",
+			args: args{"logs/test.log", 0, 500 * time.Microsecond, 1024},
+			wantRw: &RotateWriter{
+				Filename: "logs/test.log",
+				NumFiles: 0,
+				dirpath:  "logs",
+			},
+			wantErr: false,
+			cleanUp: cleanupLogs,
+		},
+		{
+			name:    "Log file path exists, zero numfiles. Zero flush timeout",
+			args:    args{"logs/test.log", 0, 0, 1024},
+			wantRw:  nil,
+			wantErr: true,
+			cleanUp: cleanupLogs,
+		},
+		{
+			name:    "Log file path exists, zero buffersize",
+			args:    args{"logs/test.log", 0, 500 * time.Microsecond, 0},
+			wantRw:  nil,
+			wantErr: true,
+			cleanUp: cleanupLogs,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotRw, err := NewRotateBufferedWriter(tt.args.fileName, tt.args.numfiles, tt.args.flushTimeout, tt.args.bufferSize)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("NewRotateWriter() error = %v, wantErr %v", err, tt.wantErr)
 				return
